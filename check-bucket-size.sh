@@ -41,6 +41,23 @@ Usage:
   Size: \((($usage.size_kb // 0) / 1024 / 1024) | floor) GB (\(((($usage.size_kb // 0) / 1024 / 1024 / 1024)) | floor) TB)
   Size Actual: \((($usage.size_kb_actual // 0) / 1024 / 1024) | floor) GB
   Objects: \($usage.num_objects // 0)
-  Shards: \(.num_shards)"
+  Shards: \(.num_shards // "N/A")"
     '
+    
+    # If usage shows 0, check if bucket actually has objects
+    USAGE_SIZE=$(echo "$BUCKET_STATS" | jq -r '(.usage.rgw.main.size_kb // 0)')
+    if [ "$USAGE_SIZE" = "0" ] || [ -z "$USAGE_SIZE" ] || [ "$USAGE_SIZE" = "null" ]; then
+        echo ""
+        echo "⚠️  Warning: Usage shows 0 KB. Checking if bucket has objects..."
+        OBJECT_COUNT=$(radosgw-admin bucket list --bucket="$BUCKET_NAME" --max-entries=1 2>/dev/null | jq 'length' 2>/dev/null || echo "0")
+        if [ "$OBJECT_COUNT" != "0" ] && [ -n "$OBJECT_COUNT" ]; then
+            echo "  → Bucket appears to have objects but usage stats show 0 KB"
+            echo "  → This may indicate:"
+            echo "    1. Usage stats haven't been updated yet"
+            echo "    2. Objects exist but are not counted in usage"
+            echo "    3. Run 'debug-bucket-stats.sh $BUCKET_NAME' for detailed analysis"
+        else
+            echo "  → Bucket appears to be empty (no objects found)"
+        fi
+    fi
 fi
