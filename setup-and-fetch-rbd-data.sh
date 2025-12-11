@@ -46,9 +46,13 @@ echo -e "${GREEN}Found pod: $TOOLS_POD${NC}"
 echo ""
 
 # Check if script exists locally
-SCRIPT_PATH="$(dirname "$0")/$SCRIPT_NAME"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_NAME"
+
 if [ ! -f "$SCRIPT_PATH" ]; then
     echo -e "${RED}Error: Script '$SCRIPT_NAME' not found at $SCRIPT_PATH${NC}"
+    echo -e "${YELLOW}Looked in: $SCRIPT_DIR${NC}"
+    echo -e "${YELLOW}Current directory: $(pwd)${NC}"
     exit 1
 fi
 

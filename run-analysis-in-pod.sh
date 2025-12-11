@@ -39,7 +39,8 @@ echo ""
 echo -e "${YELLOW}Checking if script exists in pod...${NC}"
 if ! oc exec "$TOOLS_POD" -- test -f "/tmp/$SCRIPT_NAME" 2>/dev/null; then
     echo -e "${YELLOW}Script not found in pod. Running setup first...${NC}"
-    "$(dirname "$0")/setup-and-fetch-rbd-data.sh" || exit 1
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+    "$SCRIPT_DIR/setup-and-fetch-rbd-data.sh" || exit 1
     echo ""
 fi
 
