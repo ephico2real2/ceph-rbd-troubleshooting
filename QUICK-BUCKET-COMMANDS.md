@@ -13,15 +13,14 @@ TOTAL_OBJECTS=$(radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | jq 'l
 echo "Total objects: $TOTAL_OBJECTS"
 ```
 
-## Step 2: Get Objects Older Than X Days
+## Step 2: Get Objects Older Than X Days & Save to File
 ```bash
 # Set days threshold
 DAYS_OLD=90
 CUTOFF=$(date -u -d "$DAYS_OLD days ago" +%s)
 
-# Get list of old objects and store in variable
-OLD_OBJECTS=$(radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | \
-  jq -r '.[] | .name' | \
+# Get list of old objects and save directly to file (more efficient)
+radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | jq -r '.[] | .name' | \
   while read obj; do
     MTIME=$(radosgw-admin object stat --bucket="$BUCKET" --object="$obj" 2>/dev/null | \
       jq -r '.mtime' | cut -d'.' -f1)
@@ -29,18 +28,17 @@ OLD_OBJECTS=$(radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | \
     if [ -n "$MTIME_TS" ] && [ "$MTIME_TS" -lt "$CUTOFF" ]; then
       echo "$obj"
     fi
-  done)
+  done > /tmp/old_objects.txt
 
 # Count old objects
-OLD_COUNT=$(echo "$OLD_OBJECTS" | wc -l | tr -d ' ')
-echo "Objects older than $DAYS_OLD days: $OLD_COUNT"
+OLD_COUNT=$(wc -l < /tmp/old_objects.txt | tr -d ' ')
+echo "Found $OLD_COUNT objects older than $DAYS_OLD days"
 ```
 
-## Step 3: Save to File (for large lists)
+## Step 3: Verify File Contents
 ```bash
-# Save old objects to file
-echo "$OLD_OBJECTS" > /tmp/old_objects.txt
-echo "Saved $OLD_COUNT objects to /tmp/old_objects.txt"
+# Check file was created and has content
+echo "File size: $(wc -l < /tmp/old_objects.txt | tr -d ' ') objects"
 ```
 
 ## Step 4: Preview First 10 Objects
