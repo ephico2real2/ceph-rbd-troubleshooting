@@ -17,8 +17,8 @@ This guide provides recommendations and commands for cleaning up RGW (RADOS Gate
    - **Size**: ~517 GiB (555,461,776,756 bytes)
    - **Objects**: 172,522 objects
    - **Owner**: noobaa-ceph-objectstore-user
-   - **Status**: Old NooBaa bucket from 2023
-   - **Recommendation**: Safe to delete if unused
+   - **Status**: **DO NOT DELETE** - Contains NooBaa metadata
+   - **Recommendation**: **Exclude from cleanup** - Required for NooBaa operation
 
 3. **Empty Buckets** (usage: {})
    - `dell-program-tool-43b6ff39-5d10-4b17-822a-3e3e5febd2af`
@@ -31,9 +31,9 @@ This guide provides recommendations and commands for cleaning up RGW (RADOS Gate
 ## Expected Space Recovery
 
 - Loki bucket cleanup: **~5.4 TiB** (if all deleted) or **~2-3 TiB** (if old objects only)
-- NooBaa bucket cleanup: **~517 GiB**
+- ~~NooBaa bucket cleanup: **~517 GiB**~~ **DO NOT DELETE** - Contains NooBaa metadata
 - Empty buckets: Minimal (already empty)
-- **Total potential recovery: ~5.9 TiB**
+- **Total potential recovery: ~2-5.4 TiB** (depending on Loki retention policy)
 
 ## Step-by-Step Cleanup Process
 
@@ -218,6 +218,14 @@ radosgw-admin bucket rm \
 #   --bypass-gc
 ```
 
+## ⚠️ Important: Buckets That Cannot Be Deleted
+
+### NooBaa Metadata Bucket
+- **Bucket**: `nb.1678954504655.apps.kcs-pre-ewd.k8s.boeing.com`
+- **Reason**: Contains NooBaa's internal metadata
+- **Action**: **DO NOT DELETE** - Will break NooBaa functionality
+- **Size**: ~517 GiB (must remain)
+
 ## Recommended Cleanup Strategy
 
 ### Phase 1: Safe Cleanup (Start Here)
@@ -227,14 +235,10 @@ radosgw-admin bucket rm \
    # Run Step 3 commands above
    ```
 
-2. **Delete old NooBaa bucket** (if confirmed unused)
-   ```bash
-   radosgw-admin bucket rm \
-     --bucket=nb.1678954504655.apps.kcs-pre-ewd.k8s.boeing.com \
-     --purge-objects \
-     --bypass-gc
-   ```
-   **Expected recovery: ~517 GiB**
+2. **~~Delete old NooBaa bucket~~** ⚠️ **DO NOT DELETE**
+   - **WARNING**: NooBaa bucket contains metadata required for NooBaa operation
+   - **Action**: Exclude from cleanup
+   - **Reason**: Deleting this bucket will break NooBaa functionality
 
 ### Phase 2: Date-Based Cleanup (Recommended)
 

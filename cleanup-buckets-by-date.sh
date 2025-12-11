@@ -38,15 +38,11 @@ done
 
 echo ""
 
-# Step 2: Delete old NooBaa bucket
-echo "=== Step 2: Deleting Old NooBaa Bucket ==="
+# Step 2: Skip NooBaa bucket (contains metadata - DO NOT DELETE)
+echo "=== Step 2: NooBaa Bucket (Skipping) ==="
 echo "Bucket: $NOOBAA_BUCKET"
-if radosgw-admin bucket rm --bucket="$NOOBAA_BUCKET" --purge-objects --bypass-gc 2>/dev/null; then
-  echo "  ✓ Deleted (~517 GiB freed)"
-else
-  echo "  ✗ Failed or already deleted"
-fi
-
+echo "  ⚠️  SKIPPED - Contains NooBaa metadata (required for operation)"
+echo "  Size: ~517 GiB (cannot be deleted)"
 echo ""
 
 # Step 3: Delete old objects from Loki bucket using the dedicated script
