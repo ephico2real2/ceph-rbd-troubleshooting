@@ -40,8 +40,11 @@ cat > /tmp/lc_rule.json << EOF
 }
 EOF
 
-# Apply the rule
-radosgw-admin lc set --bucket="$BUCKET" --lc-config=/tmp/lc_rule.json
+# Apply the rule using metadata put (lifecycle rules are stored as metadata)
+radosgw-admin metadata put --metadata-key="bucket:$BUCKET" --infile=/tmp/lc_rule.json
+
+# OR use S3 API (if you have AWS CLI or s3cmd):
+# aws s3api put-bucket-lifecycle-configuration --bucket "$BUCKET" --lifecycle-configuration file:///tmp/lc_rule.json
 ```
 
 ### Method 2: Delete objects with specific tag older than X days
@@ -81,7 +84,8 @@ cat > /tmp/lc_rule.json << EOF
 }
 EOF
 
-radosgw-admin lc set --bucket="$BUCKET" --lc-config=/tmp/lc_rule.json
+# Set lifecycle rule using metadata put
+radosgw-admin metadata put --metadata-key="bucket:$BUCKET" --infile=/tmp/lc_rule.json
 ```
 
 ## Process Lifecycle Rules Manually (Run Immediately)
@@ -220,8 +224,8 @@ cat > /tmp/loki_lc.json << EOF
 }
 EOF
 
-# Apply rule
-radosgw-admin lc set --bucket="$BUCKET" --lc-config=/tmp/loki_lc.json
+# Apply rule using metadata put
+radosgw-admin metadata put --metadata-key="bucket:$BUCKET" --infile=/tmp/loki_lc.json
 
 # Process immediately (or wait for automatic processing)
 radosgw-admin lc process --bucket="$BUCKET"
