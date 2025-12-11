@@ -36,8 +36,8 @@ for VOL in $VOLUMES; do
     
     # Get provisioned and used from input file (filter out warnings)
     VOL_INFO=$(grep -v "^warning:" "$INPUT_FILE" | grep "^$VOL " | head -1)
-    PROVISIONED=$(echo "$VOL_INFO" | awk '{print $2}')
-    USED=$(echo "$VOL_INFO" | awk '{print $3}')
+    PROVISIONED=$(echo "$VOL_INFO" | awk '{print $2, $3}')  # e.g., "1 GiB"
+    USED=$(echo "$VOL_INFO" | awk '{print $4, $5}')         # e.g., "28 MiB"
     
     # Search in PVCs
     PVC_INFO=$(echo "$ALL_PVCS" | jq -r --arg uuid "$VOL_UUID" '

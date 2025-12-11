@@ -31,16 +31,29 @@ echo "==========================================================================
 # Process each volume from RBD output (filter out warnings)
 grep -v "^warning:" "$RBD_FILE" | grep "^csi-vol-" | grep -v "@" | grep -v -- "-temp" | while read -r line; do
     VOL_NAME=$(echo "$line" | awk '{print $1}')
-    PROVISIONED=$(echo "$line" | awk '{print $2}')
-    USED=$(echo "$line" | awk '{print $3}')
+    PROVISIONED=$(echo "$line" | awk '{print $2, $3}')  # e.g., "1 GiB"
+    USED=$(echo "$line" | awk '{print $4, $5}')         # e.g., "28 MiB"
     VOL_UUID=$(echo "$VOL_NAME" | sed 's/^csi-vol-//')
     
-    # Calculate usage percentage
-    PROV_NUM=$(echo "$PROVISIONED" | sed 's/[^0-9.]//g')
-    USED_NUM=$(echo "$USED" | sed 's/[^0-9.]//g')
+    # Calculate percentage using awk with unit conversion
+    USAGE_PCT=$(echo "$PROVISIONED $USED" | awk '{
+        prov=$1; prov_unit=$2; used=$3; used_unit=$4;
+        # Convert to bytes
+        if (prov_unit ~ /TiB/) prov *= 1024*1024*1024*1024;
+        else if (prov_unit ~ /GiB/) prov *= 1024*1024*1024;
+        else if (prov_unit ~ /MiB/) prov *= 1024*1024;
+        else if (prov_unit ~ /KiB/) prov *= 1024;
+        
+        if (used_unit ~ /TiB/) used *= 1024*1024*1024*1024;
+        else if (used_unit ~ /GiB/) used *= 1024*1024*1024;
+        else if (used_unit ~ /MiB/) used *= 1024*1024;
+        else if (used_unit ~ /KiB/) used *= 1024;
+        
+        if (prov > 0) printf "%.1f", (used/prov)*100;
+        else print "0";
+    }')
     
-    if [ -n "$PROV_NUM" ] && [ -n "$USED_NUM" ] && [ "$PROV_NUM" != "0" ]; then
-        USAGE_PCT=$(awk -v used="$USED_NUM" -v prov="$PROV_NUM" 'BEGIN {printf "%.1f", (used/prov)*100}')
+    if [ -n "$USAGE_PCT" ] && [ "$USAGE_PCT" != "0" ]; then
         
         # Check if usage exceeds threshold
         if (( $(awk -v pct="$USAGE_PCT" -v thresh="$THRESHOLD_PCT" 'BEGIN {print (pct > thresh) ? 1 : 0}') )); then
@@ -72,19 +85,32 @@ echo "==========================================================================
 
 grep -v "^warning:" "$RBD_FILE" | grep "^csi-vol-" | grep -v "@" | grep -v -- "-temp" | while read -r line; do
     VOL_NAME=$(echo "$line" | awk '{print $1}')
-    PROVISIONED=$(echo "$line" | awk '{print $2}')
-    USED=$(echo "$line" | awk '{print $3}')
+    PROVISIONED=$(echo "$line" | awk '{print $2, $3}')  # e.g., "40 GiB"
+    USED=$(echo "$line" | awk '{print $4, $5}')         # e.g., "9.2 GiB"
     VOL_UUID=$(echo "$VOL_NAME" | sed 's/^csi-vol-//')
     
     # Check if provisioned is in GiB and > 50
     if echo "$PROVISIONED" | grep -q "GiB"; then
-        PROV_NUM=$(echo "$PROVISIONED" | sed 's/GiB//' | sed 's/[^0-9.]//g')
-        USED_NUM=$(echo "$USED" | sed 's/[^0-9.]//g')
+        PROV_NUM=$(echo "$PROVISIONED" | awk '{print $1}')
         
-        if [ -n "$PROV_NUM" ] && [ -n "$USED_NUM" ] && [ "$PROV_NUM" != "0" ]; then
-            # Check if > 50GiB
-            if (( $(awk -v prov="$PROV_NUM" 'BEGIN {print (prov > 50) ? 1 : 0}') )); then
-                USAGE_PCT=$(awk -v used="$USED_NUM" -v prov="$PROV_NUM" 'BEGIN {printf "%.1f", (used/prov)*100}')
+        if [ -n "$PROV_NUM" ] && (( $(awk -v prov="$PROV_NUM" 'BEGIN {print (prov > 50) ? 1 : 0}') )); then
+            # Calculate percentage with unit conversion
+            USAGE_PCT=$(echo "$PROVISIONED $USED" | awk '{
+                prov=$1; prov_unit=$2; used=$3; used_unit=$4;
+                # Convert to bytes
+                if (prov_unit ~ /TiB/) prov *= 1024*1024*1024*1024;
+                else if (prov_unit ~ /GiB/) prov *= 1024*1024*1024;
+                else if (prov_unit ~ /MiB/) prov *= 1024*1024;
+                else if (prov_unit ~ /KiB/) prov *= 1024;
+                
+                if (used_unit ~ /TiB/) used *= 1024*1024*1024*1024;
+                else if (used_unit ~ /GiB/) used *= 1024*1024*1024;
+                else if (used_unit ~ /MiB/) used *= 1024*1024;
+                else if (used_unit ~ /KiB/) used *= 1024;
+                
+                if (prov > 0) printf "%.1f", (used/prov)*100;
+                else print "0";
+            }')
                 
                 # Check if usage < 10%
                 if (( $(awk -v pct="$USAGE_PCT" 'BEGIN {print (pct < 10) ? 1 : 0}') )); then
