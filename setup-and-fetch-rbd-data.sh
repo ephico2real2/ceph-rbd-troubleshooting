@@ -72,13 +72,14 @@ oc rsync "$TEMP_DIR/" "$TOOLS_POD:/tmp/" --strategy=tar --no-perms=false 2>/dev/
     }
 }
 echo -e "${GREEN}Script copied successfully${NC}"
-echo ""
 
-# Make script executable in pod
-echo -e "${YELLOW}Step 4: Making script executable in pod...${NC}"
-oc exec "$TOOLS_POD" -- chmod +x "/tmp/$SCRIPT_NAME" 2>/dev/null || {
-    echo -e "${YELLOW}Warning: Could not make script executable (may already be executable)${NC}"
+# IMPORTANT: Make script executable in pod (rsync may not preserve execute permissions)
+echo -e "${YELLOW}Step 4: Making script executable in pod (required after rsync)...${NC}"
+oc exec "$TOOLS_POD" -- chmod +x "/tmp/$SCRIPT_NAME" || {
+    echo -e "${RED}Error: Failed to make script executable in pod${NC}"
+    exit 1
 }
+echo -e "${GREEN}Script is now executable${NC}"
 echo ""
 
 # Run RBD command to get usage data
