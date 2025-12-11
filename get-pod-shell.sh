@@ -15,16 +15,12 @@ oc project "$NAMESPACE" >/dev/null 2>&1 || {
 echo ""
 
 # Get the rook-ceph-operator pod name
-# Use jsonpath to get pod name directly (more reliable than parsing -o name)
-TOOLS_POD=$(oc get pods -l app=rook-ceph-operator -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+TOOLS_POD=$(oc get pods -n "$NAMESPACE" -l app=rook-ceph-operator -o name 2>/dev/null | head -1 | cut -d'/' -f2)
 
 if [ -z "$TOOLS_POD" ]; then
     echo "Error: Could not find rook-ceph-operator pod in namespace '$NAMESPACE'"
     exit 1
 fi
-
-# Clean up any whitespace/newlines
-TOOLS_POD=$(echo "$TOOLS_POD" | tr -d '\n' | tr -d '\r' | xargs)
 echo "Connecting to pod: $TOOLS_POD"
 echo "CEPH_ARGS will be set automatically"
 echo ""
