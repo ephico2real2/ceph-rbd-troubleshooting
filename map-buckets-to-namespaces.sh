@@ -25,7 +25,9 @@ printf "%-60s %-30s %-50s %-15s %-15s\n" \
 echo "================================================================================================================================"
 
 # Process each bucket
-echo "$BUCKETS_JSON" | jq -r '.[] | "\(.bucket)|\(.owner)|\(.usage.rgw.main.size_kb // 0)|\(.usage.rgw.main.num_objects // 0)"' | \
+echo "$BUCKETS_JSON" | jq -r '.[] | 
+    (.usage.rgw.main // {}) as $usage |
+    "\(.bucket)|\(.owner)|\($usage.size_kb // 0)|\($usage.num_objects // 0)"' | \
 while IFS='|' read -r bucket_name owner size_kb num_objects; do
     NAMESPACE="UNKNOWN"
     OBC_NAME=""
@@ -90,7 +92,9 @@ done
 
 echo ""
 echo "=== Summary by Namespace ==="
-echo "$BUCKETS_JSON" | jq -r '.[] | "\(.bucket)|\(.owner)|\(.usage.rgw.main.size_kb // 0)"' | \
+echo "$BUCKETS_JSON" | jq -r '.[] | 
+    (.usage.rgw.main // {}) as $usage |
+    "\(.bucket)|\(.owner)|\($usage.size_kb // 0)"' | \
 while IFS='|' read -r bucket owner size_kb; do
     # Determine namespace (simplified logic)
     if echo "$owner" | grep -q "openshift-logging\|lokistack"; then

@@ -13,10 +13,11 @@ if [ -z "$BUCKET_NAME" ]; then
     echo ""
     radosgw-admin bucket stats 2>/dev/null | \
       jq -r '.[] | 
+        (.usage.rgw.main // {}) as $usage |
         "Bucket: \(.bucket)
 Owner: \(.owner)
-Size: \((.usage.rgw.main.size_kb // 0) / 1024 / 1024 | floor) GB (\((.usage.rgw.main.size_kb // 0) / 1024 / 1024 / 1024 | floor) TB)
-Objects: \(.usage.rgw.main.num_objects // 0)
+Size: \((($usage.size_kb // 0) / 1024 / 1024) | floor) GB (\(((($usage.size_kb // 0) / 1024 / 1024 / 1024)) | floor) TB)
+Objects: \($usage.num_objects // 0)
 ---"'
 else
     echo "=== Bucket Details: $BUCKET_NAME ==="
@@ -30,15 +31,16 @@ else
     fi
     
     echo "$BUCKET_STATS" | jq -r '
+        (.usage.rgw.main // {}) as $usage |
         "Bucket: \(.bucket)
 Owner: \(.owner)
 Creation: \(.creation_time)
 Last Modified: \(.mtime)
 
 Usage:
-  Size: \((.usage.rgw.main.size_kb // 0) / 1024 / 1024 | floor) GB (\(((.usage.rgw.main.size_kb // 0) / 1024 / 1024 / 1024) | floor) TB)
-  Size Actual: \((.usage.rgw.main.size_kb_actual // 0) / 1024 / 1024 | floor) GB
-  Objects: \(.usage.rgw.main.num_objects // 0)
+  Size: \((($usage.size_kb // 0) / 1024 / 1024) | floor) GB (\(((($usage.size_kb // 0) / 1024 / 1024 / 1024)) | floor) TB)
+  Size Actual: \((($usage.size_kb_actual // 0) / 1024 / 1024) | floor) GB
+  Objects: \($usage.num_objects // 0)
   Shards: \(.num_shards)"
     '
 fi

@@ -52,7 +52,7 @@ radosgw-admin bucket stats --bucket=lokistack-objectbucketclai-0674fc7d-c94f-438
 echo ""
 echo "=== NooBaa Bucket Details ==="
 radosgw-admin bucket stats --bucket=nb.1678954504655.apps.kcs-pre-ewd.k8s.boeing.com | \
-  jq -r '.usage.rgw.main | "Size: \(.size_kb) KB (\(.size_kb/1024/1024) GB)\nObjects: \(.num_objects)"'
+  jq -r '(.usage.rgw.main // {}) as $usage | "Size: \(($usage.size_kb // 0)) KB (\((($usage.size_kb // 0)/1024/1024)) GB)\nObjects: \($usage.num_objects // 0)"'
 
 # Sample objects from Loki bucket (check dates)
 echo ""
@@ -259,7 +259,7 @@ radosgw-admin bucket rm \
 
 ```bash
 # Check remaining bucket sizes
-radosgw-admin bucket stats | jq -r '.[] | "\(.bucket): \(.usage.rgw.main.size_kb // 0) KB"'
+radosgw-admin bucket stats | jq -r '.[] | (.usage.rgw.main // {}) as $usage | "\(.bucket): \($usage.size_kb // 0) KB"'
 
 # Check cluster space
 ceph $CEPH_ARGS df
@@ -485,7 +485,7 @@ rm -f /tmp/batch_* "$TEMP_FILE"
 
 ```bash
 # Terminal 1: Watch bucket size decrease
-watch -n 30 'radosgw-admin bucket stats --bucket=lokistack-objectbucketclai-0674fc7d-c94f-4384-aa65-be74330200b7 | jq -r ".usage.rgw.main.size_kb" | awk "{printf \"%.2f GB\n\", \$1/1024/1024}"'
+watch -n 30 'radosgw-admin bucket stats --bucket=lokistack-objectbucketclai-0674fc7d-c94f-4384-aa65-be74330200b7 | jq -r "(.usage.rgw.main.size_kb // 0)" | awk "{printf \"%.2f GB\n\", \$1/1024/1024}"'
 
 # Terminal 2: Watch cluster space
 watch -n 30 'ceph $CEPH_ARGS df | grep -E "TOTAL|AVAIL"'
@@ -528,7 +528,7 @@ Before running cleanup:
 # Check remaining bucket sizes
 echo "=== Remaining Bucket Sizes ==="
 radosgw-admin bucket stats | \
-  jq -r '.[] | select(.usage.rgw.main.size_kb > 0) | "\(.bucket): \(.usage.rgw.main.size_kb/1024/1024) GB"'
+  jq -r '.[] | (.usage.rgw.main // {}) as $usage | select(($usage.size_kb // 0) > 0) | "\(.bucket): \((($usage.size_kb // 0)/1024/1024)) GB"'
 
 # Check cluster space recovery
 echo ""
