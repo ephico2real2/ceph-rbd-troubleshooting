@@ -21,12 +21,8 @@ This guide provides recommendations and commands for cleaning up RGW (RADOS Gate
    - **Recommendation**: **Exclude from cleanup** - Required for NooBaa operation
 
 3. **Empty Buckets** (usage: {})
-   - `dell-program-tool-43b6ff39-5d10-4b17-822a-3e3e5febd2af`
-   - `flight-data-bucket-e132979a-8403-4b50-8c62-7cc567fe7897`
-   - `flitedx-bucket-25a33c2e-3818-43b8-893e-406e43754c9c`
-   - `petool-bucket-732bbde0-45e8-4c4e-84ba-a8ad6f008247`
-   - `iceberg-test-9f7186e9-cb3e-4f63-8f54-1b3972070dbf`
-   - **Recommendation**: Safe to delete entirely
+   - Empty buckets should be identified manually and deleted as needed
+   - **Recommendation**: Safe to delete entirely if confirmed empty
 
 ## Expected Space Recovery
 
@@ -186,18 +182,12 @@ radosgw-admin bucket list --bucket="$BUCKET" | \
 ### Step 3: Delete Empty Buckets
 
 ```bash
-# Delete empty buckets (safe - no data loss)
-for bucket in \
-  "dell-program-tool-43b6ff39-5d10-4b17-822a-3e3e5febd2af" \
-  "flight-data-bucket-e132979a-8403-4b50-8c62-7cc567fe7897" \
-  "flitedx-bucket-25a33c2e-3818-43b8-893e-406e43754c9c" \
-  "petool-bucket-732bbde0-45e8-4c4e-84ba-a8ad6f008247" \
-  "iceberg-test-9f7186e9-cb3e-4f63-8f54-1b3972070dbf"; do
-  echo "Deleting empty bucket: $bucket"
-  radosgw-admin bucket rm --bucket="$bucket" 2>/dev/null && \
-    echo "  ✓ Deleted" || \
-    echo "  ✗ Failed or already deleted"
-done
+# Identify and delete empty buckets (safe - no data loss)
+# First, list all buckets and identify empty ones:
+radosgw-admin bucket stats | jq -r '.[] | select((.usage.rgw.main // {} | .size_kb // 0) == 0) | .bucket'
+
+# Then delete empty buckets manually as needed:
+# radosgw-admin bucket rm --bucket="<bucket-name>"
 ```
 
 ### Step 4: Delete Entire Buckets (If All Data is Old)

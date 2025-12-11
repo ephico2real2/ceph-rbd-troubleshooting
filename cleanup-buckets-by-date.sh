@@ -17,26 +17,11 @@ echo "Date: $(date)"
 echo "Days to keep: $DAYS_TO_KEEP"
 echo ""
 
-# Step 1: Delete empty buckets
-echo "=== Step 1: Deleting Empty Buckets ==="
-EMPTY_BUCKETS=(
-  "dell-program-tool-43b6ff39-5d10-4b17-822a-3e3e5febd2af"
-  "flight-data-bucket-e132979a-8403-4b50-8c62-7cc567fe7897"
-  "flitedx-bucket-25a33c2e-3818-43b8-893e-406e43754c9c"
-  "petool-bucket-732bbde0-45e8-4c4e-84ba-a8ad6f008247"
-  "iceberg-test-9f7186e9-cb3e-4f63-8f54-1b3972070dbf"
-)
-
-for bucket in "${EMPTY_BUCKETS[@]}"; do
-  echo "Deleting empty bucket: $bucket"
-  if radosgw-admin bucket rm --bucket="$bucket" 2>/dev/null; then
-    echo "  ✓ Deleted"
-  else
-    echo "  ✗ Failed or already deleted"
-  fi
-done
-
+# Step 1: Delete empty buckets (if any)
+echo "=== Step 1: Checking for Empty Buckets ==="
+echo "Note: Empty buckets should be identified and deleted manually as needed"
 echo ""
+
 
 # Step 2: Skip NooBaa bucket (contains metadata - DO NOT DELETE)
 echo "=== Step 2: NooBaa Bucket (Skipping) ==="
