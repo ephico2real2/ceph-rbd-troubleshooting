@@ -72,12 +72,16 @@ echo ""
 echo "Loki bucket remaining size:"
 LOKI_STATS=$(radosgw-admin bucket stats --bucket="$LOKI_BUCKET" 2>/dev/null)
 if [ -n "$LOKI_STATS" ]; then
-  LOKI_SIZE=$(echo "$LOKI_STATS" | jq -r '.usage.rgw.main.size_kb // 0')
-  LOKI_OBJECTS=$(echo "$LOKI_STATS" | jq -r '.usage.rgw.main.num_objects // 0')
-  echo "  Size: $(echo "$LOKI_SIZE" | awk '{printf "%.2f GB\n", $1/1024/1024}')"
-  echo "  Objects: $LOKI_OBJECTS"
+  LOKI_SIZE=$(echo "$LOKI_STATS" | jq -r '(.usage.rgw.main.size_kb // 0)')
+  LOKI_OBJECTS=$(echo "$LOKI_STATS" | jq -r '(.usage.rgw.main.num_objects // 0)')
+  if [ "$LOKI_SIZE" != "0" ] && [ -n "$LOKI_SIZE" ]; then
+    echo "  Size: $(echo "$LOKI_SIZE" | awk '{printf "%.2f GB\n", $1/1024/1024}')"
+    echo "  Objects: $LOKI_OBJECTS"
+  else
+    echo "  Bucket empty or no usage data"
+  fi
 else
-  echo "  Bucket deleted or empty"
+  echo "  Bucket deleted or not found"
 fi
 
 echo ""

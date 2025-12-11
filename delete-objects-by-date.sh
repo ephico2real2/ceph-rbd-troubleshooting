@@ -37,10 +37,10 @@ if ! radosgw-admin bucket stats --bucket="$BUCKET_NAME" >/dev/null 2>&1; then
 fi
 
 # Get initial bucket stats
-INITIAL_SIZE=$(radosgw-admin bucket stats --bucket="$BUCKET_NAME" | \
-  jq -r '.usage.rgw.main.size_kb // 0')
-INITIAL_OBJECTS=$(radosgw-admin bucket stats --bucket="$BUCKET_NAME" | \
-  jq -r '.usage.rgw.main.num_objects // 0')
+INITIAL_SIZE=$(radosgw-admin bucket stats --bucket="$BUCKET_NAME" 2>/dev/null | \
+  jq -r '(.usage.rgw.main.size_kb // 0)')
+INITIAL_OBJECTS=$(radosgw-admin bucket stats --bucket="$BUCKET_NAME" 2>/dev/null | \
+  jq -r '(.usage.rgw.main.num_objects // 0)')
 
 echo "Initial bucket stats:"
 echo "  Size: $(echo "$INITIAL_SIZE" | awk '{printf "%.2f GB\n", $1/1024/1024}')"
@@ -142,9 +142,9 @@ if [ "$DRY_RUN" != "dry-run" ] && [ "$DELETED" -gt 0 ]; then
     echo ""
     echo "=== Final Bucket Stats ==="
     FINAL_SIZE=$(radosgw-admin bucket stats --bucket="$BUCKET_NAME" 2>/dev/null | \
-      jq -r '.usage.rgw.main.size_kb // 0')
+      jq -r '(.usage.rgw.main.size_kb // 0)')
     FINAL_OBJECTS=$(radosgw-admin bucket stats --bucket="$BUCKET_NAME" 2>/dev/null | \
-      jq -r '.usage.rgw.main.num_objects // 0')
+      jq -r '(.usage.rgw.main.num_objects // 0)')
     
     SIZE_FREED=$(echo "$INITIAL_SIZE $FINAL_SIZE" | awk '{printf "%.2f GB\n", ($1-$2)/1024/1024}')
     

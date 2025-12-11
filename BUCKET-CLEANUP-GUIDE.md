@@ -46,7 +46,7 @@ export CEPH_ARGS='-c /var/lib/rook/openshift-storage/openshift-storage.config'
 # Check Loki bucket details
 echo "=== Loki Bucket Details ==="
 radosgw-admin bucket stats --bucket=lokistack-objectbucketclai-0674fc7d-c94f-4384-aa65-be74330200b7 | \
-  jq -r '.usage.rgw.main | "Size: \(.size_kb) KB (\(.size_kb/1024/1024) GB)\nObjects: \(.num_objects)"'
+  jq -r '.usage.rgw.main // {} | "Size: \((.size_kb // 0)) KB (\(((.size_kb // 0)/1024/1024)) GB)\nObjects: \(.num_objects // 0)"'
 
 # Check NooBaa bucket details
 echo ""
