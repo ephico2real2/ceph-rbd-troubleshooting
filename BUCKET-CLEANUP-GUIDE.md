@@ -41,8 +41,17 @@ export CEPH_ARGS='-c /var/lib/rook/openshift-storage/openshift-storage.config'
 
 # Check Loki bucket details
 echo "=== Loki Bucket Details ==="
+echo "First, check the raw JSON structure:"
+radosgw-admin bucket stats --bucket=lokistack-objectbucketclai-0674fc7d-c94f-4384-aa65-be74330200b7 | jq '.'
+
+echo ""
+echo "Then extract usage with proper null handling:"
 radosgw-admin bucket stats --bucket=lokistack-objectbucketclai-0674fc7d-c94f-4384-aa65-be74330200b7 | \
-  jq -r '.usage.rgw.main // {} | "Size: \((.size_kb // 0)) KB (\(((.size_kb // 0)/1024/1024)) GB)\nObjects: \(.num_objects // 0)"'
+  jq -r '
+    (.usage.rgw.main // {}) as $usage |
+    "Size: \((($usage.size_kb // 0) / 1024 / 1024) | floor) GB (\(((($usage.size_kb // 0) / 1024 / 1024 / 1024)) | floor) TB))
+Objects: \($usage.num_objects // 0)
+Size Actual: \((($usage.size_kb_actual // 0) / 1024 / 1024) | floor) GB"'
 
 # Check NooBaa bucket details
 echo ""
