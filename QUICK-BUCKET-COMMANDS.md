@@ -19,16 +19,38 @@ echo "Total objects: $TOTAL_OBJECTS"
 DAYS_OLD=90
 CUTOFF=$(date -u -d "$DAYS_OLD days ago" +%s)
 
-# Get list of old objects and save directly to file (more efficient)
-radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | jq -r '.[] | .name' | \
-  while read obj; do
-    MTIME=$(radosgw-admin object stat --bucket="$BUCKET" --object="$obj" 2>/dev/null | \
-      jq -r '.mtime' | cut -d'.' -f1)
-    MTIME_TS=$(date -u -d "$MTIME" +%s 2>/dev/null)
-    if [ -n "$MTIME_TS" ] && [ "$MTIME_TS" -lt "$CUTOFF" ]; then
-      echo "$obj"
-    fi
-  done > /tmp/old_objects.txt
+# Get list of old objects - bucket list includes mtime in the JSON
+radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | \
+  jq -r --arg cutoff "$CUTOFF" '
+    .[] | 
+    (.mtime // .mtime_utc // "") as $mtime |
+    if $mtime != "" then
+      ($mtime | split(".")[0] | strptime("%Y-%m-%dT%H:%M:%S") | mktime) as $mtime_ts |
+      if $mtime_ts < ($cutoff | tonumber) then .name else empty end
+    else
+      empty
+    end
+  ' > /tmp/old_objects.txt
+
+# Alternative method if jq date parsing fails - use object stat with attrs
+# This is slower but more reliable
+if [ ! -s /tmp/old_objects.txt ]; then
+  echo "Trying alternative method (slower)..."
+  radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | jq -r '.[] | .name' | \
+    while read obj; do
+      # Try to get mtime from object metadata or use current time as fallback
+      MTIME=$(radosgw-admin object stat --bucket="$BUCKET" --object="$obj" 2>/dev/null | \
+        jq -r '.attrs."user.rgw.mtime" // .attrs."user.rgw.source_mtime" // empty')
+      if [ -z "$MTIME" ]; then
+        # If no mtime in attrs, skip or use a default (you may want to adjust this)
+        continue
+      fi
+      MTIME_TS=$(date -u -d "$MTIME" +%s 2>/dev/null || echo "0")
+      if [ -n "$MTIME_TS" ] && [ "$MTIME_TS" != "0" ] && [ "$MTIME_TS" -lt "$CUTOFF" ]; then
+        echo "$obj"
+      fi
+    done > /tmp/old_objects.txt
+fi
 
 # Count old objects
 OLD_COUNT=$(wc -l < /tmp/old_objects.txt | tr -d ' ')
@@ -98,12 +120,17 @@ radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | jq -r '.[] | .name' |
 # Objects between 90-180 days old
 START=$(date -u -d "180 days ago" +%s)
 END=$(date -u -d "90 days ago" +%s)
-radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | jq -r '.[] | .name' | \
-  while read obj; do
-    MTIME=$(radosgw-admin object stat --bucket="$BUCKET" --object="$obj" 2>/dev/null | jq -r '.mtime' | cut -d'.' -f1)
-    MTIME_TS=$(date -u -d "$MTIME" +%s 2>/dev/null)
-    [ -n "$MTIME_TS" ] && [ "$MTIME_TS" -ge "$START" ] && [ "$MTIME_TS" -lt "$END" ] && echo "$obj"
-  done > /tmp/objects_90_180_days.txt
+radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | \
+  jq -r --arg start "$START" --arg end "$END" '
+    .[] | 
+    (.mtime // .mtime_utc // "") as $mtime |
+    if $mtime != "" then
+      ($mtime | split(".")[0] | strptime("%Y-%m-%dT%H:%M:%S") | mktime) as $mtime_ts |
+      if ($mtime_ts >= ($start | tonumber)) and ($mtime_ts < ($end | tonumber)) then .name else empty end
+    else
+      empty
+    end
+  ' > /tmp/objects_90_180_days.txt
 ```
 
 ### Delete objects from file
