@@ -1,7 +1,7 @@
 #!/bin/bash
 # Setup script: Copy analysis script to pod and fetch RBD data
 # Automates the process of getting RBD data from rook-ceph-operator pod
-# Uses oc cp for reliable file copying
+# Uses stdin/stdout piping to avoid tar dependency in minimal containers
 
 set -e
 
@@ -56,9 +56,9 @@ if [ ! -f "$SCRIPT_PATH" ]; then
     exit 1
 fi
 
-# Copy analysis script to pod using oc cp
+# Copy analysis script to pod by piping content (avoids tar dependency)
 echo -e "${YELLOW}Step 3: Copying $SCRIPT_NAME to pod...${NC}"
-oc cp "$SCRIPT_PATH" "$NAMESPACE/$TOOLS_POD:/tmp/$SCRIPT_NAME" || {
+cat "$SCRIPT_PATH" | oc exec -n "$NAMESPACE" -i "$TOOLS_POD" -- sh -c "cat > /tmp/$SCRIPT_NAME" || {
     echo -e "${RED}Error: Failed to copy script to pod${NC}"
     exit 1
 }
@@ -85,9 +85,9 @@ oc exec -n "$NAMESPACE" "$TOOLS_POD" -- \
 echo -e "${GREEN}RBD data collected${NC}"
 echo ""
 
-# Copy output file from pod to local directory using oc cp
+# Copy output file from pod to local directory by piping content (avoids tar dependency)
 echo -e "${YELLOW}Step 6: Copying RBD output file to local directory...${NC}"
-oc cp "$NAMESPACE/$TOOLS_POD:$POD_RBD_OUTPUT" "./$LOCAL_RBD_OUTPUT" || {
+oc exec -n "$NAMESPACE" "$TOOLS_POD" -- cat "$POD_RBD_OUTPUT" > "./$LOCAL_RBD_OUTPUT" || {
     echo -e "${RED}Error: Failed to copy output file from pod${NC}"
     exit 1
 }
