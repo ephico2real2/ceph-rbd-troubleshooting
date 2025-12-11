@@ -42,21 +42,21 @@ size_to_bytes() {
 }
 
 echo "=== 1. Top 20 Volumes by PROVISIONED Size ==="
-rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | grep -v "@" | grep -v "-temp" | \
+rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | grep -v "@" | grep -v -- "-temp" | \
     awk '{print $2, $3, $1}' | \
     sort -h -k1,1 -r | head -20 | \
     awk '{printf "%-60s %12s %12s\n", $3, $1, $2}'
 echo ""
 
 echo "=== 2. Top 20 Volumes by USED Size ==="
-rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | grep -v "@" | grep -v "-temp" | \
+rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | grep -v "@" | grep -v -- "-temp" | \
     awk '{print $3, $2, $1}' | \
     sort -h -k1,1 -r | head -20 | \
     awk '{printf "%-60s %12s %12s\n", $3, $2, $1}'
 echo ""
 
 echo "=== 3. Volumes with High Usage Percentage (>80%) ==="
-rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | grep -v "@" | grep -v "-temp" | \
+rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | grep -v "@" | grep -v -- "-temp" | \
     awk '{
         prov=$2; used=$3; name=$1;
         gsub(/[^0-9.]/, "", prov); gsub(/[^0-9.]/, "", used);
@@ -70,7 +70,7 @@ rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | gre
 echo ""
 
 echo "=== 4. Volumes with Low Usage but High Provisioned (<10% usage, >50GiB) ==="
-rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | grep -v "@" | grep -v "-temp" | \
+rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | grep -v "@" | grep -v -- "-temp" | \
     awk '{
         prov=$2; used=$3; name=$1;
         gsub(/[^0-9.]/, "", prov); gsub(/[^0-9.]/, "", used);
@@ -85,7 +85,7 @@ rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | gre
 echo ""
 
 echo "=== 5. Summary Statistics ==="
-rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | grep -v "@" | grep -v "-temp" | \
+rbd $CEPH_ARGS du -p "$POOL" 2>&1 | grep -v "^warning:" | grep "^csi-vol-" | grep -v "@" | grep -v -- "-temp" | \
     awk '{
         count++;
         if ($2 ~ /TiB/) { prov_total += $2 * 1024 * 1024 * 1024 * 1024 }

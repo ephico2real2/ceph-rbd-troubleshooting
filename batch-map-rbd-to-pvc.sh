@@ -18,7 +18,7 @@ echo "Input file: $INPUT_FILE"
 echo ""
 
 # Extract volume names from the RBD output (filter out warnings)
-VOLUMES=$(grep -v "^warning:" "$INPUT_FILE" | grep "^csi-vol-" | grep -v "@" | grep -v "-temp" | awk '{print $1}')
+VOLUMES=$(grep -v "^warning:" "$INPUT_FILE" | grep "^csi-vol-" | grep -v "@" | grep -v -- "-temp" | awk '{print $1}')
 
 # Get all PVCs once
 echo "Fetching all PVCs from cluster..."

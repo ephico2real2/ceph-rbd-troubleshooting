@@ -29,7 +29,7 @@ printf "%-30s %-50s %-60s %-12s %-12s %-10s\n" \
 echo "================================================================================================================================"
 
 # Process each volume from RBD output (filter out warnings)
-grep -v "^warning:" "$RBD_FILE" | grep "^csi-vol-" | grep -v "@" | grep -v "-temp" | while read -r line; do
+grep -v "^warning:" "$RBD_FILE" | grep "^csi-vol-" | grep -v "@" | grep -v -- "-temp" | while read -r line; do
     VOL_NAME=$(echo "$line" | awk '{print $1}')
     PROVISIONED=$(echo "$line" | awk '{print $2}')
     USED=$(echo "$line" | awk '{print $3}')
@@ -70,7 +70,7 @@ printf "%-30s %-50s %-60s %-12s %-12s %-10s\n" \
     "NAMESPACE" "PVC_NAME" "RBD_VOLUME" "PROVISIONED" "USED" "USAGE%"
 echo "================================================================================================================================"
 
-grep -v "^warning:" "$RBD_FILE" | grep "^csi-vol-" | grep -v "@" | grep -v "-temp" | while read -r line; do
+grep -v "^warning:" "$RBD_FILE" | grep "^csi-vol-" | grep -v "@" | grep -v -- "-temp" | while read -r line; do
     VOL_NAME=$(echo "$line" | awk '{print $1}')
     PROVISIONED=$(echo "$line" | awk '{print $2}')
     USED=$(echo "$line" | awk '{print $3}')
