@@ -23,10 +23,15 @@ generate_cat_command() {
 }
 
 # Generate commands for radosgw-admin scripts
+echo "=== Core radosgw-admin scripts ==="
 generate_cat_command "$SCRIPTS_DIR/check-bucket-size.sh"
 generate_cat_command "$SCRIPTS_DIR/inspect-bucket-json.sh"
 generate_cat_command "$SCRIPTS_DIR/delete-objects-by-date.sh"
 generate_cat_command "$SCRIPTS_DIR/cleanup-buckets-by-date.sh"
+
+echo "=== Diagnostic scripts ==="
+generate_cat_command "$SCRIPTS_DIR/fix-bucket-stats-command.sh"
+generate_cat_command "$SCRIPTS_DIR/debug-bucket-stats.sh"
 
 echo "=== All scripts created in /tmp/ ==="
 echo "You can now run them with: /tmp/script-name.sh"
