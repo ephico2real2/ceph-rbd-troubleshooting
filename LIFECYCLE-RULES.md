@@ -106,6 +106,86 @@ radosgw-admin lc get --bucket="$BUCKET"
 ```bash
 # Remove all LC rules from bucket
 radosgw-admin lc rm --bucket="$BUCKET"
+
+# Verify rules are removed
+radosgw-admin lc get --bucket="$BUCKET"
+```
+
+## Delete a Bucket
+
+### Check Bucket Before Deletion
+```bash
+BUCKET="bucket-name-to-delete"
+
+# Check bucket stats
+radosgw-admin bucket stats --bucket="$BUCKET"
+
+# List objects in bucket
+radosgw-admin bucket list --bucket="$BUCKET" --max-entries=10
+
+# Get object count
+radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | jq 'length'
+```
+
+### Delete Empty Bucket
+```bash
+BUCKET="bucket-name-to-delete"
+
+# Delete empty bucket
+radosgw-admin bucket rm --bucket="$BUCKET"
+
+# Verify deletion
+radosgw-admin bucket list | jq -r '.[] | .bucket' | grep -q "^${BUCKET}$" && echo "Still exists" || echo "Deleted"
+```
+
+### Delete Bucket with All Objects
+```bash
+BUCKET="bucket-name-to-delete"
+
+# Delete bucket and all its objects
+radosgw-admin bucket rm --bucket="$BUCKET" --purge-objects
+
+# Verify deletion
+radosgw-admin bucket list | jq -r '.[] | .bucket' | grep -q "^${BUCKET}$" && echo "Still exists" || echo "Deleted"
+```
+
+### Delete Bucket with Objects (Bypass GC)
+```bash
+BUCKET="bucket-name-to-delete"
+
+# Delete bucket, purge objects, and bypass garbage collection (faster but less safe)
+radosgw-admin bucket rm --bucket="$BUCKET" --purge-objects --bypass-gc
+```
+
+### Step-by-Step: Safe Bucket Deletion
+```bash
+BUCKET="bucket-name-to-delete"
+
+# Step 1: Check what's in the bucket
+echo "=== Bucket Stats ==="
+radosgw-admin bucket stats --bucket="$BUCKET" | jq '{bucket, owner, usage}'
+
+# Step 2: List some objects
+echo ""
+echo "=== Sample Objects ==="
+radosgw-admin bucket list --bucket="$BUCKET" --max-entries=5 | jq -r '.[] | .name'
+
+# Step 3: Get total object count
+TOTAL=$(radosgw-admin bucket list --bucket="$BUCKET" 2>/dev/null | jq 'length')
+echo ""
+echo "Total objects: $TOTAL"
+
+# Step 4: Delete bucket (with objects)
+echo ""
+echo "Deleting bucket and all objects..."
+radosgw-admin bucket rm --bucket="$BUCKET" --purge-objects
+
+# Step 5: Verify
+echo ""
+echo "=== Verification ==="
+radosgw-admin bucket list | jq -r '.[] | .bucket' | grep -q "^${BUCKET}$" && \
+  echo "ERROR: Bucket still exists!" || \
+  echo "SUCCESS: Bucket deleted"
 ```
 
 ## Example: Delete Loki Objects Older Than 90 Days
