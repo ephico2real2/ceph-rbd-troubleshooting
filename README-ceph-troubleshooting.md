@@ -7,7 +7,6 @@ This collection of scripts helps troubleshoot Ceph RBD volumes in OpenShift Data
 1. Access to the `rook-ceph-operator` pod (for RBD commands)
 2. Access to OpenShift cluster with `oc` or `kubectl` (for PVC queries)
 3. `jq` installed (for JSON parsing)
-4. `bc` installed (for calculations)
 
 ## Scripts Overview
 

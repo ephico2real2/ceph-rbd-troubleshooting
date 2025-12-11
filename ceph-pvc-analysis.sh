@@ -23,6 +23,7 @@ echo "Timestamp: $(date)"
 echo ""
 
 # Function to convert size to bytes for sorting
+# Note: Available for future enhancements and custom size calculations
 size_to_bytes() {
     local size=$1
     local unit=$(echo "$size" | grep -oE '[KMGTPE]i?B$' || echo "")

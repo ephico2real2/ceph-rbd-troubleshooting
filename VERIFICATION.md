@@ -23,15 +23,14 @@ TOOLS_POD=$(oc get pods -n openshift-storage -l app=rook-ceph-operator -o name)
 
 **Implementation:**
 ```bash
-TOOLS_POD=$(oc get pods -n "$NAMESPACE" -l app=rook-ceph-operator -o name 2>/dev/null | head -1)
-TOOLS_POD=$(echo "$TOOLS_POD" | sed 's|pod/||')  # Remove 'pod/' prefix
+TOOLS_POD=$(oc get pods -n "$NAMESPACE" -l app=rook-ceph-operator -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
 ```
 
 **Why the difference:**
 - Uses `$NAMESPACE` variable (defaults to `openshift-storage`) for flexibility
 - Adds `2>/dev/null` for error handling
-- Uses `head -1` to get first pod if multiple exist
-- Removes `pod/` prefix for use with `oc cp` and `oc exec`
+- Uses jsonpath to directly get pod name (cleaner than `-o name` + parsing)
+- Gets first pod if multiple exist
 
 ### 2. CEPH_ARGS Pattern
 
@@ -67,9 +66,8 @@ oc exec -n "$NAMESPACE" "$TOOLS_POD" -- \
 # Your pattern:
 TOOLS_POD=$(oc get pods -n openshift-storage -l app=rook-ceph-operator -o name)
 
-# Script implementation:
-TOOLS_POD=$(oc get pods -n "$NAMESPACE" -l app=rook-ceph-operator -o name 2>/dev/null | head -1)
-TOOLS_POD=$(echo "$TOOLS_POD" | sed 's|pod/||')
+# Script implementation (improved):
+TOOLS_POD=$(oc get pods -n "$NAMESPACE" -l app=rook-ceph-operator -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
 echo "Found pod: $TOOLS_POD"
 ```
 
@@ -113,9 +111,8 @@ oc cp "$NAMESPACE/$TOOLS_POD:/tmp/ceph-rbd-out.txt" "./ceph-rbd-out.txt"
 You can verify the scripts work by running them step-by-step:
 
 ```bash
-# 1. Find pod (matches your pattern)
-TOOLS_POD=$(oc get pods -n openshift-storage -l app=rook-ceph-operator -o name)
-TOOLS_POD=$(echo "$TOOLS_POD" | sed 's|pod/||')
+# 1. Find pod (improved with jsonpath)
+TOOLS_POD=$(oc get pods -n openshift-storage -l app=rook-ceph-operator -o jsonpath='{.items[0].metadata.name}')
 echo $TOOLS_POD
 
 # 2. Copy script to pod
@@ -139,10 +136,9 @@ oc cp openshift-storage/$TOOLS_POD:/tmp/ceph-rbd-out.txt ./ceph-rbd-out.txt
 ```
 Does all 4 steps automatically.
 
-### Manual (Your Pattern)
+### Manual (Your Pattern - Improved)
 ```bash
-TOOLS_POD=$(oc get pods -n openshift-storage -l app=rook-ceph-operator -o name)
-TOOLS_POD=$(echo "$TOOLS_POD" | sed 's|pod/||')
+TOOLS_POD=$(oc get pods -n openshift-storage -l app=rook-ceph-operator -o jsonpath='{.items[0].metadata.name}')
 oc rsh -n openshift-storage $TOOLS_POD
 export CEPH_ARGS='-c /var/lib/rook/openshift-storage/openshift-storage.config'
 rbd $CEPH_ARGS du -p ocs-storagecluster-cephblockpool > /tmp/ceph-rbd-out.txt

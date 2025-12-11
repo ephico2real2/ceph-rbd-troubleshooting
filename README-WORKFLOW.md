@@ -151,8 +151,7 @@ If you prefer to do things manually:
 
 ### 1. Find the Pod
 ```bash
-TOOLS_POD=$(oc get pods -n openshift-storage -l app=rook-ceph-operator -o name)
-TOOLS_POD=$(echo "$TOOLS_POD" | sed 's|pod/||')
+TOOLS_POD=$(oc get pods -n openshift-storage -l app=rook-ceph-operator -o jsonpath='{.items[0].metadata.name}')
 echo $TOOLS_POD
 ```
 

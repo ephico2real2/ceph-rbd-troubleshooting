@@ -318,7 +318,7 @@ done
 **Process:**
 1. Reads each volume from RBD file
 2. Extracts provisioned and used sizes
-3. Calculates usage percentage using `bc` (calculator)
+3. Calculates usage percentage using `awk` (consistent with other scripts)
 4. If usage > threshold, searches for matching PVC
 5. Outputs: namespace, PVC name, volume, sizes, usage %
 
@@ -348,7 +348,7 @@ fi
 
 ### **Key Features**
 - **Combines two data sources**: RBD (actual usage) + OpenShift (PVC info)
-- **Calculates percentages**: Uses `bc` for precise math
+- **Calculates percentages**: Uses `awk` for precise math
 - **Configurable threshold**: Change default 80% via parameter
 - **Two problem types**: High usage AND over-provisioned
 - **Sorted output**: High usage sorted by %, over-provisioned by size
@@ -458,7 +458,7 @@ Uses `jq` to search JSON for volume handles containing the UUID.
 All scripts require:
 - **Bash** (standard shell)
 - **jq** (JSON processor) - for parsing OpenShift API responses
-- **bc** (calculator) - for percentage calculations
+- **awk** (text processor) - for calculations and text processing (standard on all systems)
 - **oc/kubectl** - for cluster access (scripts 2-5)
 - **rbd** command - for Ceph access (script 1, run in pod)
 

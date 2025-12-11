@@ -40,10 +40,10 @@ grep -v "^warning:" "$RBD_FILE" | grep "^csi-vol-" | grep -v "@" | grep -v "-tem
     USED_NUM=$(echo "$USED" | sed 's/[^0-9.]//g')
     
     if [ -n "$PROV_NUM" ] && [ -n "$USED_NUM" ] && [ "$PROV_NUM" != "0" ]; then
-        USAGE_PCT=$(echo "scale=1; ($USED_NUM / $PROV_NUM) * 100" | bc 2>/dev/null || echo "0")
+        USAGE_PCT=$(awk -v used="$USED_NUM" -v prov="$PROV_NUM" 'BEGIN {printf "%.1f", (used/prov)*100}')
         
         # Check if usage exceeds threshold
-        if (( $(echo "$USAGE_PCT > $THRESHOLD_PCT" | bc -l 2>/dev/null || echo 0) )); then
+        if (( $(awk -v pct="$USAGE_PCT" -v thresh="$THRESHOLD_PCT" 'BEGIN {print (pct > thresh) ? 1 : 0}') )); then
             # Find matching PVC
             PVC_INFO=$(echo "$ALL_PVCS" | jq -r --arg uuid "$VOL_UUID" '
                 .items[] | 
@@ -83,11 +83,11 @@ grep -v "^warning:" "$RBD_FILE" | grep "^csi-vol-" | grep -v "@" | grep -v "-tem
         
         if [ -n "$PROV_NUM" ] && [ -n "$USED_NUM" ] && [ "$PROV_NUM" != "0" ]; then
             # Check if > 50GiB
-            if (( $(echo "$PROV_NUM > 50" | bc -l 2>/dev/null || echo 0) )); then
-                USAGE_PCT=$(echo "scale=1; ($USED_NUM / $PROV_NUM) * 100" | bc 2>/dev/null || echo "0")
+            if (( $(awk -v prov="$PROV_NUM" 'BEGIN {print (prov > 50) ? 1 : 0}') )); then
+                USAGE_PCT=$(awk -v used="$USED_NUM" -v prov="$PROV_NUM" 'BEGIN {printf "%.1f", (used/prov)*100}')
                 
                 # Check if usage < 10%
-                if (( $(echo "$USAGE_PCT < 10" | bc -l 2>/dev/null || echo 0) )); then
+                if (( $(awk -v pct="$USAGE_PCT" 'BEGIN {print (pct < 10) ? 1 : 0}') )); then
                     # Find matching PVC
                     PVC_INFO=$(echo "$ALL_PVCS" | jq -r --arg uuid "$VOL_UUID" '
                         .items[] | 

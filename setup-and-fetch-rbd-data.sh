@@ -33,7 +33,7 @@ echo ""
 
 # Get the rook-ceph-operator pod name
 echo -e "${YELLOW}Step 2: Finding rook-ceph-operator pod...${NC}"
-TOOLS_POD=$(oc get pods -n "$NAMESPACE" -l app=rook-ceph-operator -o name 2>/dev/null | head -1 | cut -d'/' -f2)
+TOOLS_POD=$(oc get pods -n "$NAMESPACE" -l app=rook-ceph-operator -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
 
 if [ -z "$TOOLS_POD" ]; then
     echo -e "${RED}Error: Could not find rook-ceph-operator pod in namespace '$NAMESPACE'${NC}"

@@ -76,9 +76,4 @@ done
 echo ""
 echo "=== Summary ==="
 TOTAL=$(echo "$VOLUMES" | wc -l | tr -d ' ')
-FOUND=$(oc get pvc --all-namespaces -o json | jq -r --arg uuid "$VOL_UUID" '
-    .items[] | 
-    select(.spec.csi.volumeHandle // "" | contains($uuid))
-' | wc -l | tr -d ' ')
-
 echo "Total volumes processed: $TOTAL"
