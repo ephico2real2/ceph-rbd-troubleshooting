@@ -73,8 +73,8 @@ echo "Found pod: $TOOLS_POD"
 
 ### Step 2: Copy Script to Pod
 ```bash
-# Scripts automatically copy ceph-pvc-analysis.sh to pod
-oc cp "$SCRIPT_PATH" "$NAMESPACE/$TOOLS_POD:/tmp/ceph-pvc-analysis.sh"
+# Scripts use cat piping to avoid tar dependency
+cat ceph-pvc-analysis.sh | oc exec -n "$NAMESPACE" -i "$TOOLS_POD" -- sh -c 'cat > /tmp/ceph-pvc-analysis.sh'
 oc exec -n "$NAMESPACE" "$TOOLS_POD" -- chmod +x "/tmp/ceph-pvc-analysis.sh"
 ```
 
@@ -92,8 +92,8 @@ oc exec -n "$NAMESPACE" "$TOOLS_POD" -- \
 
 ### Step 4: Copy Output from Pod
 ```bash
-# Scripts automatically copy output file to your current directory
-oc cp "$NAMESPACE/$TOOLS_POD:/tmp/ceph-rbd-out.txt" "./ceph-rbd-out.txt"
+# Scripts use cat to avoid tar dependency
+oc exec -n "$NAMESPACE" "$TOOLS_POD" -- cat /tmp/ceph-rbd-out.txt > ./ceph-rbd-out.txt
 ```
 
 ## File Locations
@@ -115,8 +115,8 @@ You can verify the scripts work by running them step-by-step:
 TOOLS_POD=$(oc get pods -n openshift-storage -l app=rook-ceph-operator -o jsonpath='{.items[0].metadata.name}')
 echo $TOOLS_POD
 
-# 2. Copy script to pod
-oc cp ceph-pvc-analysis.sh openshift-storage/$TOOLS_POD:/tmp/ceph-pvc-analysis.sh
+# 2. Copy script to pod (use cat piping to avoid tar dependency)
+cat ceph-pvc-analysis.sh | oc exec -n openshift-storage -i $TOOLS_POD -- sh -c 'cat > /tmp/ceph-pvc-analysis.sh'
 
 # 3. Run rbd command (matches your CEPH_ARGS pattern)
 oc exec -n openshift-storage $TOOLS_POD -- \
@@ -124,8 +124,8 @@ oc exec -n openshift-storage $TOOLS_POD -- \
          rbd \$CEPH_ARGS du -p ocs-storagecluster-cephblockpool 2>&1 | \
          grep -v '^warning:' > /tmp/ceph-rbd-out.txt"
 
-# 4. Copy output from pod
-oc cp openshift-storage/$TOOLS_POD:/tmp/ceph-rbd-out.txt ./ceph-rbd-out.txt
+# 4. Copy output from pod (use cat to avoid tar dependency)
+oc exec -n openshift-storage $TOOLS_POD -- cat /tmp/ceph-rbd-out.txt > ./ceph-rbd-out.txt
 ```
 
 ## Automated vs Manual

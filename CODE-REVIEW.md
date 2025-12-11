@@ -100,45 +100,29 @@ fi
 
 ---
 
-### 🟡 Issue #3: File Copy Method Inconsistency
+### ✅ Issue #3: FIXED - File Copy Method
 
 **File:** `setup-and-fetch-rbd-data.sh`
 
 **Problem:**
-The script uses `oc rsync` with `--strategy=tar`, which is good for directories but overly complex for single files. Also uses a temporary directory unnecessarily.
+Both `oc rsync` and `oc cp` require `tar` in the container. The rook-ceph-operator pod is minimal and doesn't have `tar` installed.
 
-**Lines 56-72:**
+**Solution:**
+Use stdin/stdout piping which doesn't require any additional tools:
+
 ```bash
-TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
-cp "$SCRIPT_PATH" "$TEMP_DIR/$SCRIPT_NAME"
-chmod +x "$TEMP_DIR/$SCRIPT_NAME"
+# Upload to pod
+cat local_file | oc exec -n "$NAMESPACE" -i "$TOOLS_POD" -- sh -c 'cat > /tmp/file'
 
-oc rsync "$TEMP_DIR/" "$TOOLS_POD:/tmp/" --strategy=tar --no-perms=false 2>/dev/null
-```
-
-**Recommendation:**
-For single file copying, use `oc cp` directly:
-```bash
-# Copy script to pod
-echo "Copying $SCRIPT_NAME to pod..."
-oc cp "$SCRIPT_PATH" "$NAMESPACE/$TOOLS_POD:/tmp/$SCRIPT_NAME" || {
-    echo "Error: Failed to copy script to pod"
-    exit 1
-}
-
-# Make executable
-oc exec -n "$NAMESPACE" "$TOOLS_POD" -- chmod +x "/tmp/$SCRIPT_NAME" || {
-    echo "Error: Failed to make script executable"
-    exit 1
-}
+# Download from pod
+oc exec -n "$NAMESPACE" "$TOOLS_POD" -- cat /tmp/file > local_file
 ```
 
 **Benefits:**
-- Simpler, more direct approach
-- No temporary directory needed
-- Easier to understand and maintain
-- Faster execution
+- Works with minimal containers (no tar dependency)
+- No temporary directories needed
+- Simpler and more portable
+- Works across all OpenShift versions
 
 ---
 

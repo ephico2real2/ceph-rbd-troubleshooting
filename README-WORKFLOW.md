@@ -157,7 +157,8 @@ echo $TOOLS_POD
 
 ### 2. Copy Script to Pod
 ```bash
-oc cp ceph-pvc-analysis.sh openshift-storage/$TOOLS_POD:/tmp/ceph-pvc-analysis.sh
+# Use cat piping to avoid tar dependency
+cat ceph-pvc-analysis.sh | oc exec -n openshift-storage -i $TOOLS_POD -- sh -c 'cat > /tmp/ceph-pvc-analysis.sh'
 oc exec -n openshift-storage $TOOLS_POD -- chmod +x /tmp/ceph-pvc-analysis.sh
 ```
 
@@ -171,7 +172,8 @@ oc exec -n openshift-storage $TOOLS_POD -- \
 
 ### 4. Copy Output from Pod
 ```bash
-oc cp openshift-storage/$TOOLS_POD:/tmp/ceph-rbd-out.txt ./ceph-rbd-out.txt
+# Use cat to avoid tar dependency
+oc exec -n openshift-storage $TOOLS_POD -- cat /tmp/ceph-rbd-out.txt > ./ceph-rbd-out.txt
 ```
 
 ### 5. Run Analysis Script in Pod
@@ -225,8 +227,8 @@ oc exec -n openshift-storage $TOOLS_POD -- \
 
 ### File Not Found After Copy
 If the output file doesn't appear locally:
-1. Check if copy succeeded: `oc exec -n openshift-storage $TOOLS_POD -- ls -la /tmp/ceph-rbd-out.txt`
-2. Try copying manually: `oc cp openshift-storage/$TOOLS_POD:/tmp/ceph-rbd-out.txt ./ceph-rbd-out.txt`
+1. Check if file exists in pod: `oc exec -n openshift-storage $TOOLS_POD -- ls -la /tmp/ceph-rbd-out.txt`
+2. Try copying manually: `oc exec -n openshift-storage $TOOLS_POD -- cat /tmp/ceph-rbd-out.txt > ./ceph-rbd-out.txt`
 
 ## Complete Example Workflow
 

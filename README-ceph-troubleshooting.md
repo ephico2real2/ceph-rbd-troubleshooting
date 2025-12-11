@@ -145,8 +145,8 @@ oc get pvc --all-namespaces -o json | \
 
 3. **Copy data file to your machine:**
    ```bash
-   # From your machine
-   oc cp openshift-storage/rook-ceph-operator-xxx:/tmp/ceph-rbd-out.txt /tmp/ceph-rbd-out.txt
+   # From your machine (using cat to avoid tar dependency)
+   oc exec -n openshift-storage rook-ceph-operator-xxx -- cat /tmp/ceph-rbd-out.txt > /tmp/ceph-rbd-out.txt
    ```
 
 4. **Map volumes to PVCs:**
