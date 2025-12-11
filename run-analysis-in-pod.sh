@@ -17,8 +17,16 @@ NC='\033[0m' # No Color
 echo "=== Running Ceph Analysis in Pod ==="
 echo ""
 
+# Switch to correct project/namespace
+echo -e "${YELLOW}Switching to namespace '$NAMESPACE'...${NC}"
+oc project "$NAMESPACE" >/dev/null 2>&1 || {
+    echo -e "${RED}Error: Failed to switch to namespace '$NAMESPACE'${NC}"
+    exit 1
+}
+echo ""
+
 # Get the rook-ceph-operator pod name
-TOOLS_POD=$(oc get pods -n "$NAMESPACE" -l app=rook-ceph-operator -o name 2>/dev/null | head -1)
+TOOLS_POD=$(oc get pods -l app=rook-ceph-operator -o name 2>/dev/null | head -1)
 
 if [ -z "$TOOLS_POD" ]; then
     echo -e "${RED}Error: Could not find rook-ceph-operator pod${NC}"
@@ -31,7 +39,7 @@ echo ""
 
 # Check if script exists in pod
 echo -e "${YELLOW}Checking if script exists in pod...${NC}"
-if ! oc exec -n "$NAMESPACE" "$TOOLS_POD" -- test -f "/tmp/$SCRIPT_NAME" 2>/dev/null; then
+if ! oc exec "$TOOLS_POD" -- test -f "/tmp/$SCRIPT_NAME" 2>/dev/null; then
     echo -e "${YELLOW}Script not found in pod. Running setup first...${NC}"
     "$(dirname "$0")/setup-and-fetch-rbd-data.sh" || exit 1
     echo ""
@@ -42,7 +50,7 @@ echo -e "${YELLOW}Running analysis script in pod...${NC}"
 echo "Pool: $POOL"
 echo ""
 
-oc exec -n "$NAMESPACE" "$TOOLS_POD" -- \
+oc exec "$TOOLS_POD" -- \
     sh -c "export CEPH_ARGS='-c /var/lib/rook/openshift-storage/openshift-storage.config' && \
            export POOL='$POOL' && \
            /tmp/$SCRIPT_NAME"
