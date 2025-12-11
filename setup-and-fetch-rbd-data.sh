@@ -1,7 +1,7 @@
 #!/bin/bash
 # Setup script: Copy analysis script to pod and fetch RBD data
 # Automates the process of getting RBD data from rook-ceph-operator pod
-# Uses oc rsync with --strategy=tar for reliable file copying
+# Uses oc cp for reliable file copying
 
 set -e
 
@@ -56,28 +56,17 @@ if [ ! -f "$SCRIPT_PATH" ]; then
     exit 1
 fi
 
-# Create temporary directory for rsync (rsync needs a directory)
-TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
-cp "$SCRIPT_PATH" "$TEMP_DIR/$SCRIPT_NAME"
-chmod +x "$TEMP_DIR/$SCRIPT_NAME"
-
-# Copy analysis script to pod using oc rsync with tar strategy
-echo -e "${YELLOW}Step 3: Copying $SCRIPT_NAME to pod using rsync (tar strategy)...${NC}"
-oc rsync "$TEMP_DIR/" "$TOOLS_POD:/tmp/" --strategy=tar --no-perms=false 2>/dev/null || {
-    echo -e "${RED}Error: Failed to copy script to pod using rsync${NC}"
-    echo "Trying alternative method..."
-    # Alternative: try copying just the file
-    oc rsync "$TEMP_DIR/$SCRIPT_NAME" "$TOOLS_POD:/tmp/" --strategy=tar --no-perms=false 2>/dev/null || {
-        echo -e "${RED}Error: All copy methods failed${NC}"
-        exit 1
-    }
+# Copy analysis script to pod using oc cp
+echo -e "${YELLOW}Step 3: Copying $SCRIPT_NAME to pod...${NC}"
+oc cp "$SCRIPT_PATH" "$NAMESPACE/$TOOLS_POD:/tmp/$SCRIPT_NAME" || {
+    echo -e "${RED}Error: Failed to copy script to pod${NC}"
+    exit 1
 }
 echo -e "${GREEN}Script copied successfully${NC}"
 
-# IMPORTANT: Make script executable in pod (rsync may not preserve execute permissions)
-echo -e "${YELLOW}Step 4: Making script executable in pod (required after rsync)...${NC}"
-oc exec "$TOOLS_POD" -- chmod +x "/tmp/$SCRIPT_NAME" || {
+# Make script executable in pod
+echo -e "${YELLOW}Step 4: Making script executable in pod...${NC}"
+oc exec -n "$NAMESPACE" "$TOOLS_POD" -- chmod +x "/tmp/$SCRIPT_NAME" || {
     echo -e "${RED}Error: Failed to make script executable in pod${NC}"
     exit 1
 }
@@ -87,42 +76,21 @@ echo ""
 # Run RBD command to get usage data
 echo -e "${YELLOW}Step 5: Fetching RBD usage data from pool '$POOL'...${NC}"
 echo "This may take a while depending on the number of volumes..."
-oc exec "$TOOLS_POD" -- \
+oc exec -n "$NAMESPACE" "$TOOLS_POD" -- \
     sh -c "export CEPH_ARGS='-c /var/lib/rook/openshift-storage/openshift-storage.config' && \
-           rbd \$CEPH_ARGS du -p '$POOL' 2>&1 | grep -v '^warning:' > $POD_RBD_OUTPUT" 2>/dev/null || {
+           rbd \$CEPH_ARGS du -p '$POOL' 2>&1 | grep -v '^warning:' > $POD_RBD_OUTPUT" || {
     echo -e "${RED}Error: Failed to run rbd du command${NC}"
     exit 1
 }
 echo -e "${GREEN}RBD data collected${NC}"
 echo ""
 
-# Copy output file from pod to local directory using oc rsync
-echo -e "${YELLOW}Step 6: Copying RBD output file to local directory using rsync (tar strategy)...${NC}"
-# Create a temporary directory to receive the file
-RECEIVE_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR $RECEIVE_DIR" EXIT
-
-# Use rsync to copy from pod to local
-oc rsync "$TOOLS_POD:/tmp/" "$RECEIVE_DIR/" --strategy=tar --include="$LOCAL_RBD_OUTPUT" --exclude="*" --no-perms=false 2>/dev/null || {
-    # Alternative: try copying the specific file
-    oc rsync "$TOOLS_POD:$POD_RBD_OUTPUT" "$RECEIVE_DIR/" --strategy=tar --no-perms=false 2>/dev/null || {
-        echo -e "${RED}Error: Failed to copy output file from pod${NC}"
-        exit 1
-    }
-    # If we copied the file directly, it might have a different name
-    if [ -f "$RECEIVE_DIR/ceph-rbd-out.txt" ]; then
-        mv "$RECEIVE_DIR/ceph-rbd-out.txt" "$LOCAL_RBD_OUTPUT"
-    elif [ -f "$RECEIVE_DIR/$(basename $POD_RBD_OUTPUT)" ]; then
-        mv "$RECEIVE_DIR/$(basename $POD_RBD_OUTPUT)" "$LOCAL_RBD_OUTPUT"
-    fi
+# Copy output file from pod to local directory using oc cp
+echo -e "${YELLOW}Step 6: Copying RBD output file to local directory...${NC}"
+oc cp "$NAMESPACE/$TOOLS_POD:$POD_RBD_OUTPUT" "./$LOCAL_RBD_OUTPUT" || {
+    echo -e "${RED}Error: Failed to copy output file from pod${NC}"
+    exit 1
 }
-
-# If file was copied to receive dir, move it to current directory
-if [ -f "$RECEIVE_DIR/$LOCAL_RBD_OUTPUT" ]; then
-    mv "$RECEIVE_DIR/$LOCAL_RBD_OUTPUT" "$LOCAL_RBD_OUTPUT"
-elif [ -f "$RECEIVE_DIR/$(basename $POD_RBD_OUTPUT)" ]; then
-    mv "$RECEIVE_DIR/$(basename $POD_RBD_OUTPUT)" "$LOCAL_RBD_OUTPUT"
-fi
 
 # Verify file exists
 if [ ! -f "$LOCAL_RBD_OUTPUT" ]; then
