@@ -42,8 +42,8 @@ if [ -z "$TOOLS_POD" ]; then
     exit 1
 fi
 
-# Remove 'pod/' prefix if present
-TOOLS_POD=$(echo "$TOOLS_POD" | sed 's|pod/||')
+# Remove 'pod/' prefix if present (handle both "pod/name" and just "name" formats)
+TOOLS_POD=$(echo "$TOOLS_POD" | sed 's|^pod/||' | tr -d '\n' | tr -d '\r')
 echo -e "${GREEN}Found pod: $TOOLS_POD${NC}"
 echo ""
 
